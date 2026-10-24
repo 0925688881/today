@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>晨間簡報</title>
+<link rel="apple-touch-icon" href="https://img.icons8.com/color/180/sun--v1.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="晨間簡報">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{background:#f2f2f7;margin:0;padding:32px;color:#1c1c1e}
+.main-card{background:#fff;padding:48px 40px;border-radius:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);text-align:center;max-width:680px;margin:60px auto}
+.btn{background:#007aff;color:#fff;border:none;padding:24px 36px;font-size:28px;font-weight:700;border-radius:20px;width:100%;cursor:pointer;margin-top:20px}
+.btn:active{transform:scale(.98);opacity:.85}
+.btn-secondary{background:#34c759}
+.btn-gray{background:#8e8e93}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:center;z-index:999;opacity:0;pointer-events:none;transition:opacity .3s}
+.modal-overlay.active{opacity:1;pointer-events:auto}
+.modal-container{background:#fff;width:95%;max-width:1020px;max-height:95vh;border-radius:36px;padding:44px 48px;box-shadow:0 20px 50px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:32px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal-container>*{flex-shrink:0}
+.header{display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid #e5e5ea;padding-bottom:18px}
+.header h1{margin:0;font-size:44px}
+.header .date{color:#8e8e93;font-size:24px}
+.section-title{font-size:30px;font-weight:800;margin-bottom:16px}
+.stock-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.stock-card{background:#f8f9fa;padding:22px 16px;border-radius:20px;text-align:center}
+.stock-name{font-size:20px;color:#8e8e93}
+.stock-price{font-size:28px;font-weight:bold;margin:8px 0}
+.up{color:#ff3b30;font-size:20px;font-weight:bold}
+.down{color:#34c759;font-size:20px;font-weight:bold}
+.content-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
+.note-item{background:#f8f9fa;padding:18px 22px;border-radius:16px;margin-bottom:16px;display:flex;align-items:center;gap:18px}
+.note-date{background:#e5f1ff;color:#007aff;font-size:20px;font-weight:bold;padding:8px 14px;border-radius:10px;white-space:nowrap}
+.note-text{font-size:22px;font-weight:500;word-break:break-all}
+.empty{color:#8e8e93;font-size:22px;padding:12px 0}
+.word-item{background:#f8f9fa;padding:18px 22px;border-radius:16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.word-title{font-size:26px;font-weight:bold}
+.word-ph{font-size:18px;color:#8e8e93;display:block}
+.word-sub{font-size:22px;color:#6c757d}
+.speaker-btn{background:#e5f1ff;border:none;color:#007aff;width:52px;height:52px;flex:none;border-radius:50%;cursor:pointer;font-size:26px}
+.g-status{font-size:18px;color:#8e8e93;margin-top:8px}
+.link-btn{background:none;border:none;color:#007aff;font-size:20px;font-weight:bold;cursor:pointer}
+.form-group{margin-bottom:24px;text-align:left}
+.form-group label{display:block;font-size:22px;font-weight:bold;margin-bottom:10px;color:#3a3a3c}
+.form-control{width:100%;padding:20px;font-size:24px;border:2px solid #c7c7cc;border-radius:16px;background:#f9f9fb}
+.form-control:focus{border-color:#007aff;outline:none;background:#fff}
+.checkbox-label{font-size:24px;display:flex!important;align-items:center;gap:16px;cursor:pointer}
+.checkbox-label input{width:32px;height:32px}
+@media(max-width:760px){
+ body{padding:12px}
+ .main-card{padding:28px 20px;margin:24px auto}
+ .modal-container{padding:24px 18px;border-radius:24px;gap:22px}
+ .header h1{font-size:30px}.header .date{font-size:16px}
+ .section-title{font-size:18px}
+ .stock-grid{grid-template-columns:1fr 1fr;gap:12px}
+ .stock-price{font-size:22px}
+ .content-grid{gap:12px}
+ .note-item{padding:12px;gap:8px;flex-direction:column;align-items:flex-start}
+ .word-item{padding:12px;flex-direction:column;align-items:flex-start}
+ .word-ph{font-size:14px}
+ .speaker-btn{width:40px;height:40px;font-size:20px}
+ .note-text{font-size:16px}.note-date{font-size:14px}
+ .word-title{font-size:19px}.word-sub{font-size:16px}
+ .btn{font-size:22px;padding:18px}
+}
+</style>
+</head>
+<body>
+
+<div class="main-card">
+  <h2 style="font-size:40px;margin:0 0 16px">⏰ 每日晨間系統</h2>
+  <p style="color:#6c757d;font-size:22px;margin-bottom:24px">每天上午 09:00 自動跳出，點擊「已知曉」後關閉。</p>
+  <button class="btn" onclick="openModal()">手動觸發晨間彈窗</button>
+  <button class="btn btn-secondary" onclick="openCalendarForm()">➕ 新增 Google 日曆記事</button>
+  <button class="btn" style="background:#4285f4" onclick="connectGoogle(true)">🔗 連結 Google 日曆</button>
+  <button class="btn btn-gray" onclick="resetAckStatus()">重置今日已知曉狀態</button>
+  <div class="g-status" id="gStatusMain"></div>
+</div>
+
+<!-- 晨間簡報 -->
+<div class="modal-overlay" id="morningModal">
+  <div class="modal-container">
+    <div class="header"><h1>☀️ 晨間簡報</h1><div class="date" id="currentDate"></div></div>
+
+    <div>
+      <div class="section-title">📈 今日四大股市指數</div>
+      <div class="stock-grid">
+        <div class="stock-card"><div class="stock-name">台灣加權</div><div class="stock-price">46,041.43</div><div class="down">-1.81%</div></div>
+        <div class="stock-card"><div class="stock-name">道瓊工業</div><div class="stock-price">52,215.16</div><div class="down">-1.23%</div></div>
+        <div class="stock-card"><div class="stock-name">費城半導體</div><div class="stock-price">10,779.46</div><div class="up">+0.44%</div></div>
+        <div class="stock-card"><div class="stock-name">那斯達克</div><div class="stock-price">25,955.34</div><div class="down">-0.21%</div></div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="section-title" style="margin:0">📅 記事與假日</div>
+          <button class="link-btn" onclick="openCalendarForm()">＋ 新增</button>
+        </div>
+        <div id="calendarNotesContainer"></div>
+        <div class="g-status" id="gStatusModal"></div>
+      </div>
+      <div>
+        <div class="section-title">📖 每日大學單字</div>
+        <div id="wordsContainer"></div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="acknowledgeAndClose()" style="margin-top:0">我知道了 / 已知曉（關閉）</button>
+  </div>
+</div>
+
+<!-- 新增記事 -->
+<div class="modal-overlay" id="calendarFormModal">
+  <div class="modal-container" style="max-width:680px">
+    <div class="header"><h1 style="font-size:30px">📅 新增日曆記事</h1><button style="background:none;border:none;font-size:28px;cursor:pointer" onclick="closeCalendarForm()">✕</button></div>
+    <div class="form-group"><label>記事標題 / 行程名稱</label><input type="text" id="eventTitle" class="form-control" placeholder="例如：車輛保養、繳地價稅"></div>
+    <div class="form-group"><label>選擇日期</label><input type="date" id="eventDate" class="form-control"></div>
+    <div class="form-group"><label>詳細內容 / 備註</label><input type="text" id="eventDesc" class="form-control" placeholder="例如：金額、地點"></div>
+    <div class="form-group"><label class="checkbox-label"><input type="checkbox" id="eventRepeatYear"> 每年重複</label></div>
+    <button class="btn btn-secondary" id="saveBtn" onclick="saveNewEvent()">儲存並寫入 Google 日曆</button>
+    <button class="btn btn-gray" style="margin-top:14px" onclick="closeCalendarForm()">取消返回</button>
+  </div>
+</div>
+
+<script>
+/* ===== 設定：貼上你的 Google OAuth「網頁應用程式」用戶端 ID =====
+   取得方式：Google Cloud Console → 啟用 Google Calendar API → 憑證 → OAuth 用戶端 ID（網頁應用程式）
+   並把本頁網址加入「已授權的 JavaScript 來源」。未填寫時，儲存會改為開啟 Google 日曆預填頁（點儲存即可）。 */
+const GOOGLE_CLIENT_ID = '3112729090-7l0tv6p218q4hcr36ijkjco5pesipbf7.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const HOLIDAY_CAL = 'zh-tw.taiwan#holiday@group.v.calendar.google.com';
+
+/* ===== 安全儲存 ===== */
+const store = {
+  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const WK = ['日','一','二','三','四','五','六'];
+const today = new Date();
+const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+document.getElementById('currentDate').innerText = today.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
+/* ===== 本機記事 ===== */
+let localEvents = [
+  {rawDate:"2026-10-30",title:"每年11月份繳地價稅東湖1302元國民路3912、1701元",repeatYear:true},
+  {rawDate:"2026-11-07",title:"馬槽怪手動工",repeatYear:false},
+  {rawDate:"2026-12-03",title:"每年地價稅順發3893元富美1701元、東湖1448元",repeatYear:true},
+  {rawDate:"2026-12-30",title:"30日結婚紀念日",repeatYear:true},
+  {rawDate:"2027-01-01",title:"中華民國開國紀念日（國定假日）",repeatYear:true}
+];
+try{
+  const s = JSON.parse(store.get('userCalendarEvents') || 'null');
+  if(Array.isArray(s) && s.length) localEvents = s;
+}catch(e){}
+
+/* ===== Google 日曆 ===== */
+let gToken = null, tokenClient = null, gEvents = [];
+try{ gEvents = JSON.parse(store.get('gEventsCache') || '[]'); }catch(e){ gEvents = []; }
+
+function setStatus(t){
+  ['gStatusMain','gStatusModal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=t; });
+}
+function initTokenClient(){
+  if(tokenClient || !GOOGLE_CLIENT_ID || !(window.google && google.accounts)) return !!tokenClient;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID, scope: SCOPE,
+    callback: async r => {
+      if(r.error){ setStatus('Google 授權未完成'); return; }
+      gToken = r.access_token; store.set('gConnected','1');
+      await fetchGoogleEvents();
+    }
+  });
+  return true;
+}
+function connectGoogle(interactive){
+  if(!GOOGLE_CLIENT_ID){ if(interactive) alert('尚未填入 GOOGLE_CLIENT_ID，請見程式碼最上方「設定」說明。'); return; }
+  if(!initTokenClient()){ if(interactive) alert('Google 登入元件尚未載入，請稍後再試。'); return; }
+  tokenClient.requestAccessToken({prompt: interactive ? 'consent' : ''});
+}
+async function gApi(path, opts){
+  const r = await fetch('https://www.googleapis.com/calendar/v3/' + path, Object.assign({headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'}}, opts||{}));
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+async function fetchGoogleEvents(){
+  if(!gToken) return;
+  try{
+    const min = todayStart.toISOString();
+    const max = new Date(todayStart.getTime()+90*86400000).toISOString();
+    const q = '/events?singleEvents=true&orderBy=startTime&maxResults=30&timeMin='+encodeURIComponent(min)+'&timeMax='+encodeURIComponent(max);
+    const [mine, hol] = await Promise.all([
+      gApi('calendars/primary'+q),
+      gApi('calendars/'+encodeURIComponent(HOLIDAY_CAL)+q).catch(()=>({items:[]}))
+    ]);
+    gEvents = [...(mine.items||[]), ...(hol.items||[])].map(e=>{
+      const s = e.start.date || e.start.dateTime.slice(0,10);
+      const t = e.start.dateTime ? e.start.dateTime.slice(11,16)+' ' : '';
+      return {rawDate:s, title:t+(e.summary||'(無標題)')};
+    });
+    store.set('gEventsCache', JSON.stringify(gEvents));
+    setStatus('✅ 已同步 Google 日曆');
+    renderNotes();
+  }catch(e){ setStatus('讀取 Google 日曆失敗（'+e.message+'）'); }
+}
+async function insertGoogleEvent(ev){
+  const [y,m,d] = ev.rawDate.split('-').map(Number);
+  const end = new Date(y,m-1,d+1);
+  const body = {
+    summary: ev.title, description: ev.desc || '',
+    start:{date:ev.rawDate}, end:{date:`${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`}
+  };
+  if(ev.repeatYear) body.recurrence = ['RRULE:FREQ=YEARLY'];
+  return gApi('calendars/primary/events',{method:'POST',body:JSON.stringify(body)});
+}
+function openGoogleTemplate(ev){
+  const [y,m,d] = ev.rawDate.split('-').map(Number);
+  const e = new Date(y,m-1,d+1);
+  const a = `${y}${pad(m)}${pad(d)}`, b = `${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}`;
+  let url = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(ev.title)
+    +'&dates='+a+'/'+b+'&details='+encodeURIComponent(ev.desc||'');
+  if(ev.repeatYear) url += '&recur='+encodeURIComponent('RRULE:FREQ=YEARLY');
+  window.open(url,'_blank');
+}
+
+/* ===== 渲染記事（只顯示未來 90 天，合併本機 + Google） ===== */
+function nextDate(ev){
+  const [y,m,d] = ev.rawDate.split('-').map(Number);
+  let dt = new Date(y,m-1,d);
+  if(ev.repeatYear) while(dt < todayStart) dt = new Date(dt.getFullYear()+1, dt.getMonth(), dt.getDate());
+  return dt;
+}
+function renderNotes(){
+  const box = document.getElementById('calendarNotesContainer');
+  if(!box) return;
+  const limit = new Date(todayStart.getTime()+90*86400000);
+  const all = [];
+  localEvents.forEach(e=>{ const dt=nextDate(e); all.push({dt, title:e.title, tag:e.repeatYear?' 🔄':''}); });
+  gEvents.forEach(e=>{ const [y,m,d]=e.rawDate.split('-').map(Number); all.push({dt:new Date(y,m-1,d), title:e.title, tag:' 📆'}); });
+  const seen = new Set();
+  const list = all.filter(x=>x.dt>=todayStart && x.dt<=limit)
+    .sort((a,b)=>a.dt-b.dt)
+    .filter(x=>{ const k=x.dt.getTime()+x.title; if(seen.has(k)) return false; seen.add(k); return true; })
+    .slice(0,10);
+  box.innerHTML = list.length ? list.map(x=>`
+    <div class="note-item">
+      <span class="note-date">${pad(x.dt.getMonth()+1)}/${pad(x.dt.getDate())} (${WK[x.dt.getDay()]})</span>
+      <span class="note-text">${esc(x.title)}${x.tag}</span>
+    </div>`).join('') : '<div class="empty">近 90 天沒有記事</div>';
+}
+
+/* ===== 英文單字 ===== */
+const wordPools = [
+  [{word:"Ubiquitous",ph:"/juːˈbɪk.wə.t̬əs/",def:"無所不在的"},{word:"Ephemeral",ph:"/əˈfem.ər.əl/",def:"短暫的"},{word:"Pragmatic",ph:"/præɡˈmæt̬.ɪk/",def:"務實的"},{word:"Meticulous",ph:"/məˈtɪk.jə.ləs/",def:"嚴謹的"},{word:"Aesthetic",ph:"/esˈθet̬.ɪk/",def:"美學的"}],
+  [{word:"Equanimity",ph:"/ˌek.wəˈnɪm.ə.t̬i/",def:"沉著"},{word:"Resilience",ph:"/rɪˈzɪl.jəns/",def:"復原力"},{word:"Serendipity",ph:"/ˌser.ənˈdɪp.ə.t̬i/",def:"機緣巧合"},{word:"Eloquent",ph:"/ˈel.ə.kwənt/",def:"雄辯的"},{word:"Ambiguity",ph:"/ˌæm.bəˈɡjuː.ə.t̬i/",def:"模稜兩可"}]
+];
+function renderWords(){
+  const box = document.getElementById('wordsContainer');
+  if(!box) return;
+  const doy = Math.floor((todayStart - new Date(today.getFullYear(),0,0)) / 86400000);
+  const ws = wordPools[doy % wordPools.length];
+  box.innerHTML = ws.map(w=>`
+    <div class="word-item">
+      <div><span class="word-title">${w.word}</span><span class="word-sub"> · ${w.def}</span><span class="word-ph">${w.ph}</span></div>
+      <button class="speaker-btn" onclick="speakText('${w.word}')">🔊</button>
+    </div>`).join('');
+}
+function speakText(t){
+  if('speechSynthesis' in window){
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t); u.lang='en-US'; speechSynthesis.speak(u);
+  }
+}
+
+/* ===== 彈窗控制 ===== */
+function openCalendarForm(){ document.getElementById('calendarFormModal').classList.add('active'); }
+function closeCalendarForm(){ document.getElementById('calendarFormModal').classList.remove('active'); }
+
+async function saveNewEvent(){
+  const date = document.getElementById('eventDate').value;
+  const title = document.getElementById('eventTitle').value.trim();
+  const desc = document.getElementById('eventDesc').value.trim();
+  const repeatYear = document.getElementById('eventRepeatYear').checked;
+  if(!date || !title){ alert('請完整填寫日期與記事標題！'); return; }
+
+  const ev = {rawDate:date, title, desc, repeatYear};
+  localEvents.push({rawDate:date, title: desc ? `${title} - ${desc}` : title, repeatYear});
+  store.set('userCalendarEvents', JSON.stringify(localEvents));
+
+  let msg = '';
+  if(gToken){
+    try{ await insertGoogleEvent(ev); msg = '✅ 已寫入 Google 日曆'; await fetchGoogleEvents(); }
+    catch(e){ msg = '⚠️ API 寫入失敗（'+e.message+'），改開啟 Google 日曆預填頁'; openGoogleTemplate(ev); }
+  } else {
+    openGoogleTemplate(ev);
+    msg = '已開啟 Google 日曆預填頁，請在該頁按「儲存」完成寫入。';
+  }
+  renderNotes(); closeCalendarForm();
+  ['eventDate','eventTitle','eventDesc'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('eventRepeatYear').checked = false;
+  alert(msg);
+}
+
+function openModal(){
+  renderNotes(); renderWords();           // 每次開啟都重新渲染，確保有內容
+  document.getElementById('morningModal').classList.add('active');
+  if(gToken) fetchGoogleEvents();
+}
+function acknowledgeAndClose(){
+  store.set('lastAcknowledgedDate', today.toDateString());
+  document.getElementById('morningModal').classList.remove('active');
+}
+function resetAckStatus(){ store.del('lastAcknowledgedDate'); alert('狀態已重置！'); }
+
+function checkAutoTrigger(){
+  if(today.getHours() >= 9 && store.get('lastAcknowledgedDate') !== today.toDateString()) openModal();
+}
+
+window.onload = function(){
+  renderNotes(); renderWords(); checkAutoTrigger();
+  if(!GOOGLE_CLIENT_ID) setStatus('尚未設定 Google 用戶端 ID，顯示本機記事');
+  else if(store.get('gConnected')) setTimeout(()=>connectGoogle(false), 800);   // 靜默重新授權
+  else setStatus('尚未連結 Google 日曆');
+};
+</script>
+</body>
+</html>
