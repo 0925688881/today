@@ -3,278 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iOS 滿版大字體晨間簡報系統</title>
+    <title>晨間簡報</title>
+
+    <!-- iOS 主畫面圖示與 PWA 捷徑設定 -->
+    <link rel="apple-touch-icon" href="https://api.iconify.design/heroicons:sun-solid.svg?color=%23ffffff&height=180">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="晨間簡報">
+
     <style>
-        /* 基礎重置與高對比字體設定 */
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
-
-        /* 鎖定頁面尺寸，防止任何全域捲動 */
-        html, body {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
+        body {
             background-color: #f2f2f7;
-            color: #000000;
+            margin: 0;
+            padding: 24px;
+            color: #1c1c1e;
         }
-
-        /* 背景主卡片 (手動測試介面) */
         .main-card {
-            width: 90vw;
-            max-width: 800px;
-            margin: 50px auto;
-            background: #ffffff;
-            padding: 40px;
-            border-radius: 28px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            background: white;
+            padding: 32px;
+            border-radius: 24px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
             text-align: center;
+            max-width: 600px;
+            margin: 40px auto;
         }
-        .main-card h2 { font-size: 38px; margin-bottom: 16px; font-weight: 800; }
-        .main-card p { font-size: 24px; color: #48484a; margin-bottom: 30px; }
-        .test-btn {
+        .btn {
             background-color: #007aff;
             color: white;
             border: none;
-            padding: 22px 30px;
+            padding: 24px 36px;
             font-size: 28px;
             font-weight: 700;
             border-radius: 20px;
             width: 100%;
             cursor: pointer;
-            margin-bottom: 16px;
+            margin-top: 20px;
+            transition: background 0.2s, transform 0.1s;
         }
-        .reset-btn { background-color: #8e8e93; }
-
-        /* 全螢幕 100vw x 100vh 高對比無滑動 彈窗 */
+        .btn:active {
+            background-color: #0056b3;
+            transform: scale(0.98);
+        }
+        
+        /* 全螢幕滿版 Modal 彈窗 (介面大一倍，免滑動) */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-color: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
+            z-index: 999;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 0.25s ease-in-out;
+            transition: opacity 0.3s ease;
         }
         .modal-overlay.active {
             opacity: 1;
             pointer-events: auto;
         }
-
-        /* 極致大字體且高度分配精準的容器 (絕對不溢出、不滑動) */
         .modal-container {
             background: #ffffff;
-            width: 96vw;
-            height: 94vh;
-            max-width: 1280px;
-            max-height: 950px;
-            border-radius: 36px;
-            padding: 28px 36px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            width: 95%;
+            max-width: 960px;
+            max-height: 92vh;
+            border-radius: 32px;
+            padding: 36px 40px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            gap: 16px;
-            overflow: hidden; /* 嚴格禁止內部滾動軸 */
+            gap: 24px;
+            overflow-y: auto;
         }
-
-        /* 標頭區域 */
+        
         .header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid #1c1c1e;
-            padding-bottom: 10px;
-            flex-shrink: 0;
+            align-items: baseline;
+            border-bottom: 2px solid #e5e5ea;
+            padding-bottom: 12px;
         }
-        .header h1 {
-            font-size: 44px;
-            font-weight: 900;
-            letter-spacing: -0.5px;
-            color: #000000;
-        }
-        .header .date {
-            font-size: 24px;
-            font-weight: 700;
-            color: #3a3a3c;
-            background: #e5e5ea;
-            padding: 6px 16px;
-            border-radius: 12px;
-        }
+        .header h1 { margin: 0; font-size: 40px; }
+        .header .date { color: #8e8e93; font-size: 22px; }
 
         .section-title {
             font-size: 28px;
-            font-weight: 900;
-            margin-bottom: 8px;
-            color: #000000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            color: #1c1c1e;
         }
-
-        /* 1. 四大股市指數區塊 (4 欄式橫向高對比卡片) */
-        .stock-section { flex-shrink: 0; }
+        
+        /* 股市區塊 (大字體) */
         .stock-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: 16px;
         }
         .stock-card {
-            background: #f2f2f7;
-            padding: 12px 10px;
-            border-radius: 18px;
+            background: #f8f9fa;
+            padding: 18px;
+            border-radius: 16px;
             text-align: center;
-            border: 2px solid #e5e5ea;
         }
-        .stock-name { font-size: 20px; color: #48484a; font-weight: 800; }
-        .stock-price { font-size: 28px; font-weight: 900; margin: 2px 0; color: #000000; }
-        .up { color: #d70015; font-size: 22px; font-weight: 900; }   /* 高對比紅漲 */
-        .down { color: #28cd41; font-size: 22px; font-weight: 900; } /* 高對比綠跌 */
+        .stock-name { font-size: 20px; color: #8e8e93; }
+        .stock-price { font-size: 26px; font-weight: bold; margin: 6px 0; }
+        .up { color: #ff3b30; font-size: 20px; font-weight: bold; }   /* 紅漲 */
+        .down { color: #34c759; font-size: 20px; font-weight: bold; } /* 綠跌 */
 
-        /* 2. 雙欄主要內容區 (高動態伸縮彈性高度) */
+        /* 雙欄併排區域（記事 + 單字） */
         .content-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            flex: 1;
-            min-height: 0; /* 關鍵：防止 flex 內容撐開造成滑動 */
+            gap: 24px;
         }
-
-        /* 兩欄內部 flex 垂直佈局 */
-        .column-box {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            min-height: 0;
-        }
-        .list-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            flex: 1;
-            justify-content: space-evenly; /* 自動均分行高避免出現捲軸 */
-            min-height: 0;
-        }
-
-        /* Google 日曆事項卡片 */
+        
+        /* Google 日曆記事 (2週範圍，自動過濾無記事日期) */
         .note-item {
-            background: #f2f2f7;
-            padding: 10px 16px;
-            border-radius: 16px;
+            background: #f8f9fa;
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
             gap: 14px;
-            border-left: 6px solid #007aff;
         }
         .note-date {
-            background: #007aff;
-            color: #ffffff;
+            background: #e5f1ff;
+            color: #007aff;
             font-size: 20px;
-            font-weight: 800;
+            font-weight: bold;
             padding: 6px 12px;
-            border-radius: 10px;
+            border-radius: 8px;
             white-space: nowrap;
         }
-        .note-text {
-            font-size: 26px;
-            font-weight: 800;
-            color: #000000;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* 大學英文單字卡片 */
+        .note-text { font-size: 22px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* 5 個大學單字 (含發音) */
         .word-item {
-            background: #f2f2f7;
-            padding: 8px 16px;
-            border-radius: 16px;
+            background: #f8f9fa;
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1.5px solid #e5e5ea;
         }
-        .word-info {
-            display: flex;
-            align-items: baseline;
-            gap: 12px;
-            overflow: hidden;
-        }
-        .word-title { font-size: 28px; font-weight: 900; color: #000000; }
-        .word-sub { font-size: 22px; color: #3a3a3c; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .word-title { font-size: 26px; font-weight: bold; }
+        .word-sub { font-size: 22px; color: #6c757d; }
         .speaker-btn {
-            background: #007aff;
+            background: #e5f1ff;
             border: none;
-            color: #ffffff;
-            width: 52px;
-            height: 52px;
+            color: #007aff;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
             cursor: pointer;
-            font-size: 26px;
+            font-size: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
-            box-shadow: 0 4px 10px rgba(0,122,255,0.3);
-        }
-        .speaker-btn:active { transform: scale(0.92); }
-
-        /* 3. 超大關閉按鈕 (高度 80px，字體 34px) */
-        .close-btn {
-            background-color: #34c759;
-            color: #ffffff;
-            border: none;
-            height: 72px;
-            font-size: 32px;
-            font-weight: 900;
-            border-radius: 22px;
-            width: 100%;
-            cursor: pointer;
-            flex-shrink: 0;
-            box-shadow: 0 6px 20px rgba(52,199,89,0.35);
-            letter-spacing: 1px;
-            transition: background 0.2s, transform 0.1s;
-        }
-        .close-btn:active {
-            background-color: #28cd41;
-            transform: scale(0.99);
         }
     </style>
 </head>
 <body>
 
-    <!-- 背景測試操作卡片 -->
+    <!-- 主頁面 -->
     <div class="main-card">
-        <h2>⏰ iOS 晨間系統控制台</h2>
-        <p>系統預設每天上午 9:00 自動觸發滿版彈窗。點擊「已知曉」後今日不再重複彈出。</p>
-        <button class="test-btn" onclick="openModal()">手動觸發晨間簡報彈窗</button>
-        <button class="test-btn reset-btn" onclick="resetAckStatus()">重置今日已知曉狀態</button>
+        <h2 style="font-size: 36px; margin-top:0;">⏰ 每日晨間系統</h2>
+        <p style="color: #6c757d; font-size: 24px;">每天上午 09:00 自動跳出，點擊「已知曉」後關閉。</p>
+        <button class="btn" onclick="openModal()">手動觸發晨間彈窗</button>
+        <button class="btn" style="background:#8e8e93;" onclick="resetAckStatus()">重置今日已知曉狀態</button>
     </div>
 
-    <!-- 滿版 100vw x 100vh 全螢幕彈窗 (免滑動高對比版) -->
+    <!-- 晨間彈窗 Modal -->
     <div class="modal-overlay" id="morningModal">
         <div class="modal-container">
             
-            <!-- 標頭列 -->
             <div class="header">
-                <h1>☀️ 晨間即時簡報</h1>
-                <div class="date" id="currentDate">--月--日</div>
+                <h1>☀️ 晨間簡報</h1>
+                <div class="date" id="currentDate"></div>
             </div>
 
-            <!-- 1. 四大股市指數區塊 -->
-            <div class="stock-section">
+            <!-- 1. 四大股市指數 (包含正確台股 46,000+ 點位) -->
+            <div>
                 <div class="section-title">📈 今日四大股市指數</div>
                 <div class="stock-grid">
                     <div class="stock-card">
@@ -300,40 +219,33 @@
                 </div>
             </div>
 
-            <!-- 2. 併排內容區：左側 2 週日曆事項，右側每日 5 大學單字 -->
+            <!-- 2. 併排區域：Google 日曆近 2 週事項 + 5 個大學單字 -->
             <div class="content-grid">
-                <!-- 左欄：Google 日曆近 2 週事項 (自動隱藏無記事日期) -->
-                <div class="column-box">
-                    <div class="section-title">📅 近 2 週 Google 日曆事項</div>
-                    <div class="list-container" id="calendarNotesContainer">
-                        <!-- JS 自動渲染有記事的日期 -->
-                    </div>
+                <!-- 左側：Google 日曆近 2 週事項 (沒記事的日期自動隱藏) -->
+                <div>
+                    <div class="section-title">📅 Google 日曆近 2 週事項</div>
+                    <div id="calendarNotesContainer"></div>
                 </div>
 
-                <!-- 右欄：每日 5 個大學級英文單字 -->
-                <div class="column-box">
+                <!-- 右側：每日 5 個大學單字 -->
+                <div>
                     <div class="section-title">📖 每日大學單字 (5字/含發音)</div>
-                    <div class="list-container" id="wordsContainer">
-                        <!-- JS 自動渲染 -->
-                    </div>
+                    <div id="wordsContainer"></div>
                 </div>
             </div>
 
-            <!-- 3. 超大醒目關閉按鈕 -->
-            <button class="close-btn" onclick="acknowledgeAndClose()">我知道了 / 已知曉（關閉頁面）</button>
-
+            <!-- 3. 已知曉按鈕 -->
+            <button class="btn" onclick="acknowledgeAndClose()">我知道了 / 已知曉（關閉）</button>
         </div>
     </div>
 
     <script>
         const today = new Date();
-        
-        // 渲染日期
         document.getElementById('currentDate').innerText = today.toLocaleDateString('zh-TW', {
             year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
         });
 
-        // 1. Google 日曆近 2 週 (14天) 事項 (無記事日期自動隱藏)
+        // 1. Google 日曆近 2 週事項 (無記事的日期自動隱藏不顯示)
         const googleCalendarEvents = [
             { date: "10/30 (五)", title: "繳納地價稅" },
             { date: "11/07 (六)", title: "馬槽怪手動工" }
@@ -342,7 +254,7 @@
         function renderGoogleCalendarNotes() {
             const container = document.getElementById('calendarNotesContainer');
             if (googleCalendarEvents.length === 0) {
-                container.innerHTML = `<div style="font-size:26px; color:#8e8e93; text-align:center;">近 2 週無任何安排事項。</div>`;
+                container.innerHTML = `<div style="color:#8e8e93; font-size:22px;">近 2 週無任何日曆事項。</div>`;
                 return;
             }
             container.innerHTML = googleCalendarEvents.map(event => `
@@ -353,21 +265,21 @@
             `).join('');
         }
 
-        // 2. 每日 5 個大學級單字 (每日根據日期輪播不同單字)
+        // 2. 每日 5 個大學級單字庫 (隨日期自動輪播)
         const wordPools = [
             [
                 { word: "Ubiquitous", phonetic: "/juːˈbɪk.wə.t̬əs/", def: "無所不在的" },
-                { word: "Ephemeral", phonetic: "/əˈfem.ər.əl/", def: "短暫的；轉瞬即逝的" },
-                { word: "Pragmatic", phonetic: "/præɡˈmæt̬.ɪk/", def: "務實的；重實效的" },
-                { word: "Meticulous", phonetic: "/məˈtɪk.jə.ləs/", def: "嚴謹的；縝密的" },
-                { word: "Aesthetic", phonetic: "/esˈθet̬.ɪk/", def: "美學的；審美的" }
+                { word: "Ephemeral", phonetic: "/əˈfem.ər.əl/", def: "短暫的" },
+                { word: "Pragmatic", phonetic: "/præɡˈmæt̬.ɪk/", def: "務實的" },
+                { word: "Meticulous", phonetic: "/məˈtɪk.jə.ləs/", def: "嚴謹的" },
+                { word: "Aesthetic", phonetic: "/esˈθet̬.ɪk/", def: "美學的" }
             ],
             [
-                { word: "Equanimity", phonetic: "/ˌek.wəˈnɪm.ə.t̬i/", def: "鎮定；沉著" },
-                { word: "Resilience", phonetic: "/rɪˈzɪl.jəns/", def: "彈性；復原力" },
+                { word: "Equanimity", phonetic: "/ˌek.wəˈnɪm.ə.t̬i/", def: "沉著" },
+                { word: "Resilience", phonetic: "/rɪˈzɪl.jəns/", def: "復原力" },
                 { word: "Serendipity", phonetic: "/ˌser.ənˈdɪp.ə.t̬i/", def: "機緣巧合" },
-                { word: "Eloquent", phonetic: "/ˈel.ə.kwənt/", def: "雄辯的；有說服力的" },
-                { word: "Ambiguity", phonetic: "/ˌæm.bəˈɡjuː.ə.t̬i/", def: "模稜兩可；含糊" }
+                { word: "Eloquent", phonetic: "/ˈel.ə.kwənt/", def: "雄辯的" },
+                { word: "Ambiguity", phonetic: "/ˌæm.bəˈɡjuː.ə.t̬i/", def: "模稜兩可" }
             ]
         ];
 
@@ -378,27 +290,26 @@
             const container = document.getElementById('wordsContainer');
             container.innerHTML = selectedWords.map(w => `
                 <div class="word-item">
-                    <div class="word-info">
+                    <div>
                         <span class="word-title">${w.word}</span>
                         <span class="word-sub"> · ${w.def}</span>
                     </div>
-                    <button class="speaker-btn" onclick="speakText('${w.word}')" title="點擊發音">🔊</button>
+                    <button class="speaker-btn" onclick="speakText('${w.word}')">🔊</button>
                 </div>
             `).join('');
         }
 
-        // 美式英文語音發音 (Web Speech Synthesis API)
+        // 語音朗讀 (TTS)
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'en-US';
-                utterance.rate = 0.9; // 稍慢發音更清晰
                 window.speechSynthesis.speak(utterance);
             }
         }
 
-        // 3. 彈窗與已知曉狀態控制
+        // 3. 彈窗與已知曉邏輯控制
         function openModal() {
             document.getElementById('morningModal').classList.add('active');
         }
@@ -411,10 +322,10 @@
 
         function resetAckStatus() {
             localStorage.removeItem('lastAcknowledgedDate');
-            alert("已重置已知曉狀態！點擊「手動觸發」即可重新測試彈窗。");
+            alert("狀態已重置！點擊「手動觸發」或重新載入即可再度彈出。");
         }
 
-        // 4. 自動檢測：每天上午 9 點過後開頁面且當天未點擊已知曉，自動彈出
+        // 4. 每日 09:00 自動觸發彈窗檢測
         function checkAutoTrigger() {
             const currentHour = today.getHours();
             const lastAck = localStorage.getItem('lastAcknowledgedDate');
@@ -425,7 +336,6 @@
             }
         }
 
-        // 頁面載入完成初始化
         window.onload = function() {
             renderGoogleCalendarNotes();
             renderWords();
