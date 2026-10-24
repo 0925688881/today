@@ -125,7 +125,7 @@
             gap: 24px;
         }
         
-        /* Google 日曆記事 (2週範圍，自動過濾無記事日期) */
+        /* Google 日曆記事 (顯示全部事項與節日，自動過濾無記事日期) */
         .note-item {
             background: #f8f9fa;
             padding: 14px 18px;
@@ -219,11 +219,11 @@
                 </div>
             </div>
 
-            <!-- 2. 併排區域：Google 日曆近 2 週事項 + 5 個大學單字 -->
+            <!-- 2. 併排區域：Google 日曆全部事項與節日 + 5 個大學單字 -->
             <div class="content-grid">
-                <!-- 左側：Google 日曆近 2 週事項 (沒記事的日期自動隱藏) -->
+                <!-- 左側：Google 日曆全部事項與節日 (自動過濾無記事日期) -->
                 <div>
-                    <div class="section-title">📅 Google 日曆近 2 週事項</div>
+                    <div class="section-title">📅 Google 日曆全部事項與節日</div>
                     <div id="calendarNotesContainer"></div>
                 </div>
 
@@ -245,16 +245,19 @@
             year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
         });
 
-        // 1. Google 日曆近 2 週事項 (無記事的日期自動隱藏不顯示)
+        // 1. Google 日曆全部事項與節日資料源 (無記事的日期自動隱藏不顯示)
         const googleCalendarEvents = [
-            { date: "10/30 (五)", title: "繳納地價稅" },
-            { date: "11/07 (六)", title: "馬槽怪手動工" }
+            { date: "10/30 (五)", title: "每年11月份繳地價稅東湖1302元國民路" },
+            { date: "11/07 (六)", title: "馬槽怪手動工" },
+            { date: "12/03 (四)", title: "每年地價稅順發3893元富美1701元" },
+            { date: "12/30 (三)", title: "30日結婚紀念日" },
+            { date: "01/03 (日)", title: "沐安3日生日 (節日/紀念)" }
         ];
 
         function renderGoogleCalendarNotes() {
             const container = document.getElementById('calendarNotesContainer');
             if (googleCalendarEvents.length === 0) {
-                container.innerHTML = `<div style="color:#8e8e93; font-size:22px;">近 2 週無任何日曆事項。</div>`;
+                container.innerHTML = `<div style="color:#8e8e93; font-size:22px;">目前無任何日曆事項。</div>`;
                 return;
             }
             container.innerHTML = googleCalendarEvents.map(event => `
