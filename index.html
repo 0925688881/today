@@ -125,7 +125,7 @@
             gap: 24px;
         }
         
-        /* Google 日曆記事 (顯示全部事項與節日，自動過濾無記事日期) */
+        /* Google 日曆記事與國定假日樣式 */
         .note-item {
             background: #f8f9fa;
             padding: 14px 18px;
@@ -219,11 +219,11 @@
                 </div>
             </div>
 
-            <!-- 2. 併排區域：Google 日曆全部事項與節日 + 5 個大學單字 -->
+            <!-- 2. 併排區域：Google 日曆全部事項、國定假日與節日 + 5 個大學單字 -->
             <div class="content-grid">
-                <!-- 左側：Google 日曆全部事項與節日 (自動過濾無記事日期) -->
+                <!-- 左側：Google 日曆事項與台灣國定假日 -->
                 <div>
-                    <div class="section-title">📅 Google 日曆全部事項與節日</div>
+                    <div class="section-title">📅 日曆記事與國定假日</div>
                     <div id="calendarNotesContainer"></div>
                 </div>
 
@@ -245,13 +245,21 @@
             year: 'numeric', month: 'long', day: 'numeric', weekday: 'short'
         });
 
-        // 1. Google 日曆全部事項與節日資料源 (無記事的日期自動隱藏不顯示)
+        // Google 日曆事項、個人行程與台灣重要國定假日資料源
         const googleCalendarEvents = [
             { date: "10/30 (五)", title: "每年11月份繳地價稅東湖1302元國民路" },
             { date: "11/07 (六)", title: "馬槽怪手動工" },
             { date: "12/03 (四)", title: "每年地價稅順發3893元富美1701元" },
             { date: "12/30 (三)", title: "30日結婚紀念日" },
-            { date: "01/03 (日)", title: "沐安3日生日 (節日/紀念)" }
+            { date: "01/01 (四)", title: "中華民國開國紀念日（國定假日）" },
+            { date: "01/03 (日)", title: "沐安3日生日" },
+            { date: "02/16 (一)", title: "農曆除夕（國定假日）" },
+            { date: "02/17 (二)", title: "春節 / 農曆新年（國定假日）" },
+            { date: "04/04 (六)", title: "兒童節與清明節（國定假日）" },
+            { date: "05/01 (五)", title: "勞動節（國定假日）" },
+            { date: "06/19 (五)", title: "端午節（國定假日）" },
+            { date: "09/25 (五)", title: "中秋節（國定假日）" },
+            { date: "10/10 (土)", title: "國慶日（國定假日）" }
         ];
 
         function renderGoogleCalendarNotes() {
@@ -268,7 +276,7 @@
             `).join('');
         }
 
-        // 2. 每日 5 個大學級單字庫 (隨日期自動輪播)
+        // 每日 5 個大學級單字庫 (隨日期自動輪播)
         const wordPools = [
             [
                 { word: "Ubiquitous", phonetic: "/juːˈbɪk.wə.t̬əs/", def: "無所不在的" },
@@ -312,7 +320,7 @@
             }
         }
 
-        // 3. 彈窗與已知曉邏輯控制
+        // 彈窗與已知曉邏輯控制
         function openModal() {
             document.getElementById('morningModal').classList.add('active');
         }
@@ -328,7 +336,7 @@
             alert("狀態已重置！點擊「手動觸發」或重新載入即可再度彈出。");
         }
 
-        // 4. 每日 09:00 自動觸發彈窗檢測
+        // 每日 09:00 自動觸發彈窗檢測
         function checkAutoTrigger() {
             const currentHour = today.getHours();
             const lastAck = localStorage.getItem('lastAcknowledgedDate');
@@ -347,3 +355,4 @@
     </script>
 </body>
 </html>
+
