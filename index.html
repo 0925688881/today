@@ -242,7 +242,13 @@ function renderNotes(){
   if(!box) return;
   const limit = new Date(todayStart.getTime()+90*86400000);
   const all = [];
-  localEvents.forEach(e=>{ const dt=nextDate(e); all.push({dt, title:e.title, tag:e.repeatYear?' 🔄':''}); });
+  const gDates = new Set(gEvents.map(e=>e.rawDate));
+  localEvents.forEach(e=>{
+    const dt=nextDate(e);
+    const key=`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+    if(gDates.has(key)) return;   // 同一天 Google 已有記事 → 以 Google 為準，不重複顯示
+    all.push({dt, title:e.title, tag:e.repeatYear?' 🔄':''});
+  });
   gEvents.forEach(e=>{ const [y,m,d]=e.rawDate.split('-').map(Number); all.push({dt:new Date(y,m-1,d), title:e.title, tag:' 📆'}); });
   const seen = new Set();
   const list = all.filter(x=>x.dt>=todayStart && x.dt<=limit)
@@ -296,7 +302,7 @@ async function saveNewEvent(){
 
   let msg = '';
   if(gToken){
-    try{ await insertGoogleEvent(ev); msg = '✅ 已寫入 Google 日曆'; await fetchGoogleEvents(); }
+    try{ await insertGoogleEvent(ev); localEvents.pop(); store.set('userCalendarEvents', JSON.stringify(localEvents)); msg = '✅ 已寫入 Google 日曆'; await fetchGoogleEvents(); }
     catch(e){ msg = '⚠️ API 寫入失敗（'+e.message+'），改開啟 Google 日曆預填頁'; openGoogleTemplate(ev); }
   } else {
     openGoogleTemplate(ev);
