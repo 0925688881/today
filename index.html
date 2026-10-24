@@ -11,6 +11,11 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 *{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+html{overflow-x:hidden;touch-action:pan-y;-webkit-text-size-adjust:100%}
+body{touch-action:pan-y;overscroll-behavior-x:none}
+body.lock{overflow:hidden;position:fixed;inset:0;width:100%}
+.modal-overlay{touch-action:pan-y;overflow:hidden}
+.modal-container{width:min(95%,1020px);overscroll-behavior:contain}
 html,body{max-width:100%;overflow-x:hidden}
 body{background:#f2f2f7;margin:0;padding:32px;color:#1c1c1e}
 .modal-container{overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y}
@@ -110,7 +115,7 @@ body{background:#f2f2f7;margin:0;padding:32px;color:#1c1c1e}
         <div class="g-status" id="gStatusModal"></div>
       </div>
       <div>
-        <div class="section-title">📖 每日大學單字</div>
+        <div class="section-title">📖 每日大學單字（10）</div>
         <div id="wordsContainer"></div>
       </div>
     </div>
@@ -269,8 +274,10 @@ function renderNotes(){
 
 /* ===== 英文單字 ===== */
 const wordPools = [
-  [{word:"Ubiquitous",ph:"/juːˈbɪk.wə.t̬əs/",def:"無所不在的"},{word:"Ephemeral",ph:"/əˈfem.ər.əl/",def:"短暫的"},{word:"Pragmatic",ph:"/præɡˈmæt̬.ɪk/",def:"務實的"},{word:"Meticulous",ph:"/məˈtɪk.jə.ləs/",def:"嚴謹的"},{word:"Aesthetic",ph:"/esˈθet̬.ɪk/",def:"美學的"}],
-  [{word:"Equanimity",ph:"/ˌek.wəˈnɪm.ə.t̬i/",def:"沉著"},{word:"Resilience",ph:"/rɪˈzɪl.jəns/",def:"復原力"},{word:"Serendipity",ph:"/ˌser.ənˈdɪp.ə.t̬i/",def:"機緣巧合"},{word:"Eloquent",ph:"/ˈel.ə.kwənt/",def:"雄辯的"},{word:"Ambiguity",ph:"/ˌæm.bəˈɡjuː.ə.t̬i/",def:"模稜兩可"}]
+  [{word:"Ubiquitous",ph:"/juːˈbɪk.wə.t̬əs/",def:"無所不在的"},{word:"Ephemeral",ph:"/əˈfem.ər.əl/",def:"短暫的"},{word:"Pragmatic",ph:"/præɡˈmæt̬.ɪk/",def:"務實的"},{word:"Meticulous",ph:"/məˈtɪk.jə.ləs/",def:"嚴謹的"},{word:"Aesthetic",ph:"/esˈθet̬.ɪk/",def:"美學的"},
+   {word:"Ambivalent",ph:"/æmˈbɪv.ə.lənt/",def:"矛盾的"},{word:"Conundrum",ph:"/kəˈnʌn.drəm/",def:"難題"},{word:"Scrutinize",ph:"/ˈskruː.t̬ən.aɪz/",def:"仔細審查"},{word:"Tenacious",ph:"/təˈneɪ.ʃəs/",def:"堅韌的"},{word:"Candid",ph:"/ˈkæn.dɪd/",def:"坦率的"}],
+  [{word:"Equanimity",ph:"/ˌek.wəˈnɪm.ə.t̬i/",def:"沉著"},{word:"Resilience",ph:"/rɪˈzɪl.jəns/",def:"復原力"},{word:"Serendipity",ph:"/ˌser.ənˈdɪp.ə.t̬i/",def:"機緣巧合"},{word:"Eloquent",ph:"/ˈel.ə.kwənt/",def:"雄辯的"},{word:"Ambiguity",ph:"/ˌæm.bəˈɡjuː.ə.t̬i/",def:"模稜兩可"},
+   {word:"Inevitable",ph:"/ɪˈnev.ɪ.t̬ə.bəl/",def:"無可避免的"},{word:"Paradigm",ph:"/ˈper.ə.daɪm/",def:"典範"},{word:"Substantial",ph:"/səbˈstæn.ʃəl/",def:"大量的"},{word:"Coherent",ph:"/koʊˈhɪr.ənt/",def:"連貫的"},{word:"Mitigate",ph:"/ˈmɪt̬.ə.ɡeɪt/",def:"減輕"}]
 ];
 function renderWords(){
   const box = document.getElementById('wordsContainer');
@@ -321,12 +328,12 @@ async function saveNewEvent(){
 
 function openModal(){
   renderNotes(); renderWords();           // 每次開啟都重新渲染，確保有內容
-  document.getElementById('morningModal').classList.add('active');
+  document.getElementById('morningModal').classList.add('active'); document.body.classList.add('lock');
   if(gToken) fetchGoogleEvents();
 }
 function acknowledgeAndClose(){
   store.set('lastAcknowledgedDate', today.toDateString());
-  document.getElementById('morningModal').classList.remove('active');
+  document.getElementById('morningModal').classList.remove('active'); document.body.classList.remove('lock');
 }
 function resetAckStatus(){ store.del('lastAcknowledgedDate'); alert('狀態已重置！'); }
 
