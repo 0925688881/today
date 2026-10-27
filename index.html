@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -43,6 +44,9 @@ body{background:#f2f2f7;margin:0;padding:32px;color:#1c1c1e}
 .stock-price{font-size:28px;font-weight:bold;margin:8px 0}
 .up{color:#ff3b30;font-size:20px;font-weight:bold}
 .down{color:#34c759;font-size:20px;font-weight:bold}
+.stock-change-points{font-size:16px;color:#6c757d;margin-top:5px}
+.stock-time{font-size:12px;color:#8e8e93;margin-top:8px;line-height:1.5;overflow-wrap:anywhere}
+.market-status{font-size:14px;color:#8e8e93;margin-top:14px;line-height:1.6}
 .content-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:start}
 .note-item{background:#f8f9fa;padding:18px 22px;border-radius:16px;margin-bottom:16px;display:flex;align-items:center;gap:18px}
 .note-date{background:#e5f1ff;color:#007aff;font-size:20px;font-weight:bold;padding:8px 14px;border-radius:10px;white-space:nowrap}
@@ -100,11 +104,42 @@ body{background:#f2f2f7;margin:0;padding:32px;color:#1c1c1e}
     <div>
       <div class="section-title">📈 今日四大股市指數</div>
       <div class="stock-grid">
-        <div class="stock-card"><div class="stock-name">台灣加權</div><div class="stock-price">46,041.43</div><div class="down">-1.81%</div></div>
-        <div class="stock-card"><div class="stock-name">道瓊工業</div><div class="stock-price">52,215.16</div><div class="down">-1.23%</div></div>
-        <div class="stock-card"><div class="stock-name">費城半導體</div><div class="stock-price">10,779.46</div><div class="up">+0.44%</div></div>
-        <div class="stock-card"><div class="stock-name">那斯達克</div><div class="stock-price">25,955.34</div><div class="down">-0.21%</div></div>
+
+        <div class="stock-card">
+          <div class="stock-name">台灣加權</div>
+          <div class="stock-price" id="stock-TWII-price">載入中...</div>
+          <div id="stock-TWII-change" class="down">查詢中</div>
+          <div id="stock-TWII-points" class="stock-change-points"></div>
+          <div id="stock-TWII-time" class="stock-time"></div>
+        </div>
+
+        <div class="stock-card">
+          <div class="stock-name">道瓊工業</div>
+          <div class="stock-price" id="stock-DJI-price">載入中...</div>
+          <div id="stock-DJI-change" class="down">查詢中</div>
+          <div id="stock-DJI-points" class="stock-change-points"></div>
+          <div id="stock-DJI-time" class="stock-time"></div>
+        </div>
+
+        <div class="stock-card">
+          <div class="stock-name">費城半導體</div>
+          <div class="stock-price" id="stock-SOX-price">載入中...</div>
+          <div id="stock-SOX-change" class="down">查詢中</div>
+          <div id="stock-SOX-points" class="stock-change-points"></div>
+          <div id="stock-SOX-time" class="stock-time"></div>
+        </div>
+
+        <div class="stock-card">
+          <div class="stock-name">那斯達克</div>
+          <div class="stock-price" id="stock-IXIC-price">載入中...</div>
+          <div id="stock-IXIC-change" class="down">查詢中</div>
+          <div id="stock-IXIC-points" class="stock-change-points"></div>
+          <div id="stock-IXIC-time" class="stock-time"></div>
+        </div>
+
       </div>
+      <div class="market-status" id="marketStatus">正在取得最新股市資料...</div>
+      <button class="link-btn" style="margin-top:8px" onclick="refreshMarketData(true)">🔄 手動更新股市資料</button>
     </div>
 
     <div class="content-grid">
@@ -140,9 +175,7 @@ body{background:#f2f2f7;margin:0;padding:32px;color:#1c1c1e}
 </div>
 
 <script>
-/* ===== 設定：貼上你的 Google OAuth「網頁應用程式」用戶端 ID =====
-   取得方式：Google Cloud Console → 啟用 Google Calendar API → 憑證 → OAuth 用戶端 ID（網頁應用程式）
-   並把本頁網址加入「已授權的 JavaScript 來源」。未填寫時，儲存會改為開啟 Google 日曆預填頁（點儲存即可）。 */
+/* ===== Google 日曆設定 ===== */
 const GOOGLE_CLIENT_ID = '3112729090-7l0tv6p218q4hcr36ijkjco5pesipbf7.apps.googleusercontent.com';
 const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const HOLIDAY_CAL = 'zh-tw.taiwan#holiday@group.v.calendar.google.com';
@@ -156,9 +189,280 @@ const store = {
 const pad = n => String(n).padStart(2,'0');
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const WK = ['日','一','二','三','四','五','六'];
-const today = new Date();
-const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-document.getElementById('currentDate').innerText = today.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
+let today = new Date();
+let todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+function updateDateDisplay(){
+  today = new Date();
+  todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  document.getElementById('currentDate').innerText =
+    today.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+}
+updateDateDisplay();
+
+/* =====================================================
+   股市自動更新
+   Yahoo Finance 圖表資料 + CORS 代理
+   ^TWII = 台灣加權
+   ^DJI  = 道瓊工業
+   ^SOX  = 費城半導體
+   ^IXIC = 那斯達克綜合
+   ===================================================== */
+
+const MARKET_PROXY = 'https://proxy.cors.dev/';
+const MARKET_REFRESH_MS = 15 * 60 * 1000;
+
+const MARKET_INDICES = [
+  {id:'TWII', symbol:'^TWII', name:'台灣加權'},
+  {id:'DJI', symbol:'^DJI', name:'道瓊工業'},
+  {id:'SOX', symbol:'^SOX', name:'費城半導體'},
+  {id:'IXIC', symbol:'^IXIC', name:'那斯達克'}
+];
+
+let marketRefreshing = false;
+let marketLastSuccess = null;
+
+try {
+  marketLastSuccess = JSON.parse(store.get('marketLastSuccess') || 'null');
+} catch(e) {
+  marketLastSuccess = null;
+}
+
+function marketNumber(n){
+  return Number(n).toLocaleString('en-US',{
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  });
+}
+
+function marketDateTime(timestamp){
+  if(!timestamp) return '時間未提供';
+  return new Date(timestamp * 1000).toLocaleString('zh-TW',{
+    timeZone:'Asia/Taipei',
+    month:'2-digit',
+    day:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit',
+    hour12:false
+  });
+}
+
+function marketDateOnly(timestamp){
+  if(!timestamp) return '日期未提供';
+  return new Date(timestamp * 1000).toLocaleDateString('zh-TW',{
+    timeZone:'Asia/Taipei',
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit'
+  });
+}
+
+function setMarketStatus(message){
+  const el = document.getElementById('marketStatus');
+  if(el) el.textContent = message;
+}
+
+function renderOneMarket(item, data, isCached){
+  const priceEl = document.getElementById('stock-'+item.id+'-price');
+  const changeEl = document.getElementById('stock-'+item.id+'-change');
+  const pointsEl = document.getElementById('stock-'+item.id+'-points');
+  const timeEl = document.getElementById('stock-'+item.id+'-time');
+
+  if(!priceEl || !changeEl || !pointsEl || !timeEl) return;
+
+  if(!data || !Number.isFinite(data.price)){
+    priceEl.textContent = '--';
+    changeEl.textContent = '暫無資料';
+    changeEl.className = 'down';
+    pointsEl.textContent = '';
+    timeEl.textContent = '等待行情來源恢復';
+    return;
+  }
+
+  priceEl.textContent = marketNumber(data.price);
+
+  if(Number.isFinite(data.change) && Number.isFinite(data.percent)){
+    const sign = data.change > 0 ? '+' : '';
+    changeEl.textContent = sign + data.percent.toFixed(2) + '%';
+    changeEl.className = data.change > 0 ? 'up' : (data.change < 0 ? 'down' : '');
+    pointsEl.textContent = sign + marketNumber(data.change) + ' 點';
+  }else{
+    changeEl.textContent = '漲跌資料未提供';
+    changeEl.className = '';
+    pointsEl.textContent = '';
+  }
+
+  timeEl.textContent =
+    (isCached ? '快取資料｜' : '行情時間｜') +
+    marketDateTime(data.timestamp);
+}
+
+function renderMarketCache(){
+  if(!marketLastSuccess || !marketLastSuccess.items) return;
+
+  MARKET_INDICES.forEach(item=>{
+    renderOneMarket(item, marketLastSuccess.items[item.id], true);
+  });
+
+  const savedAt = marketLastSuccess.savedAt
+    ? new Date(marketLastSuccess.savedAt).toLocaleString('zh-TW')
+    : '時間未提供';
+
+  setMarketStatus('目前顯示上次成功取得的行情。快取儲存時間：'+savedAt+'；正在嘗試更新。');
+}
+
+async function fetchOneMarket(item){
+  const apiURL =
+    'https://query1.finance.yahoo.com/v8/finance/chart/' +
+    encodeURIComponent(item.symbol) +
+    '?range=5d&interval=1d';
+
+  const response = await fetch(MARKET_PROXY + apiURL, {
+    method:'GET',
+    credentials:'omit',
+    cache:'no-store'
+  });
+
+  if(!response.ok){
+    throw new Error(item.name+'查詢失敗，HTTP '+response.status);
+  }
+
+  const json = await response.json();
+
+  if(json.chart && json.chart.error){
+    throw new Error(item.name+'：'+
+      (json.chart.error.description || '行情來源回傳錯誤'));
+  }
+
+  const result = json.chart && json.chart.result && json.chart.result[0];
+
+  if(!result || !result.meta){
+    throw new Error(item.name+'沒有可用的行情資料');
+  }
+
+  const meta = result.meta;
+  const quote = result.indicators &&
+                result.indicators.quote &&
+                result.indicators.quote[0];
+
+  let price = Number(meta.regularMarketPrice);
+  let previousClose = Number(meta.chartPreviousClose);
+
+  if(!Number.isFinite(price) && quote && quote.close){
+    const valid = quote.close.filter(v=>v !== null && Number.isFinite(Number(v)));
+    if(valid.length) price = Number(valid[valid.length-1]);
+  }
+
+  if(!Number.isFinite(price)){
+    throw new Error(item.name+'價格資料無效');
+  }
+
+  if(!Number.isFinite(previousClose) || previousClose <= 0){
+    throw new Error(item.name+'前收盤資料無效');
+  }
+
+  const change = price - previousClose;
+  const percent = change / previousClose * 100;
+
+  return {
+    id:item.id,
+    symbol:item.symbol,
+    price,
+    previousClose,
+    change,
+    percent,
+    timestamp:meta.regularMarketTime || null,
+    marketDate:meta.regularMarketTime
+      ? marketDateOnly(meta.regularMarketTime)
+      : '日期未提供'
+  };
+}
+
+async function refreshMarketData(showAlert){
+  if(marketRefreshing){
+    if(showAlert) alert('股市資料正在更新，請稍候。');
+    return;
+  }
+
+  marketRefreshing = true;
+  setMarketStatus('正在向行情來源查詢四大指數，請稍候...');
+
+  let successCount = 0;
+  let errorMessages = [];
+
+  try{
+    const results = await Promise.allSettled(
+      MARKET_INDICES.map(item=>fetchOneMarket(item))
+    );
+
+    const newItems = marketLastSuccess && marketLastSuccess.items
+      ? Object.assign({}, marketLastSuccess.items)
+      : {};
+
+    results.forEach((result,index)=>{
+      const item = MARKET_INDICES[index];
+
+      if(result.status === 'fulfilled'){
+        newItems[item.id] = result.value;
+        renderOneMarket(item,result.value,false);
+        successCount++;
+      }else{
+        const old = newItems[item.id];
+
+        if(old){
+          renderOneMarket(item,old,true);
+        }else{
+          renderOneMarket(item,null,false);
+        }
+
+        errorMessages.push(item.name+'：'+
+          (result.reason && result.reason.message
+            ? result.reason.message
+            : '查詢失敗'));
+      }
+    });
+
+    if(successCount > 0){
+      marketLastSuccess = {
+        items:newItems,
+        savedAt:new Date().toISOString()
+      };
+
+      store.set('marketLastSuccess',JSON.stringify(marketLastSuccess));
+    }
+
+    if(successCount === MARKET_INDICES.length){
+      setMarketStatus(
+        '✅ 四大指數已完成查詢。行情時間依各市場資料為準；' +
+        '下次自動查詢約 15 分鐘後。'
+      );
+    }else if(successCount > 0){
+      setMarketStatus(
+        '⚠️ 本次成功取得 '+successCount+'/4 個指數；' +
+        '失敗項目保留上次成功資料（如有）。'+
+        errorMessages.join('；')
+      );
+    }else{
+      setMarketStatus(
+        '⚠️ 本次行情查詢失敗。畫面保留上次成功資料（如有）。'+
+        errorMessages.join('；')
+      );
+    }
+
+    if(showAlert){
+      alert(successCount === 4
+        ? '四大股市指數已更新。請查看各指數的行情時間。'
+        : '本次取得 '+successCount+'/4 個指數。請查看畫面上的錯誤提示及資料時間。');
+    }
+
+  }catch(e){
+    setMarketStatus('⚠️ 股市更新失敗：'+e.message);
+    if(showAlert) alert('股市更新失敗：'+e.message);
+  }finally{
+    marketRefreshing = false;
+  }
+}
 
 /* ===== 本機記事 ===== */
 let localEvents = [
@@ -168,6 +472,7 @@ let localEvents = [
   {rawDate:"2026-12-30",title:"30日結婚紀念日",repeatYear:true},
   {rawDate:"2027-01-01",title:"中華民國開國紀念日（國定假日）",repeatYear:true}
 ];
+
 try{
   const s = JSON.parse(store.get('userCalendarEvents') || 'null');
   if(Array.isArray(s) && s.length) localEvents = s;
@@ -175,70 +480,136 @@ try{
 
 /* ===== Google 日曆 ===== */
 let gToken = null, tokenClient = null, gEvents = [];
-try{ gEvents = JSON.parse(store.get('gEventsCache') || '[]'); }catch(e){ gEvents = []; }
+
+try{
+  gEvents = JSON.parse(store.get('gEventsCache') || '[]');
+}catch(e){
+  gEvents = [];
+}
 
 function setStatus(t){
-  ['gStatusMain','gStatusModal'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=t; });
+  ['gStatusMain','gStatusModal'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=t;
+  });
 }
+
 function initTokenClient(){
   if(tokenClient || !GOOGLE_CLIENT_ID || !(window.google && google.accounts)) return !!tokenClient;
+
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID, scope: SCOPE,
-    callback: async r => {
-      if(r.error){ setStatus('Google 授權未完成'); return; }
-      gToken = r.access_token; store.set('gConnected','1');
+    client_id:GOOGLE_CLIENT_ID,
+    scope:SCOPE,
+    callback:async r=>{
+      if(r.error){
+        setStatus('Google 授權未完成');
+        return;
+      }
+
+      gToken = r.access_token;
+      store.set('gConnected','1');
       await fetchGoogleEvents();
     }
   });
+
   return true;
 }
+
 function connectGoogle(interactive){
-  if(!GOOGLE_CLIENT_ID){ if(interactive) alert('尚未填入 GOOGLE_CLIENT_ID，請見程式碼最上方「設定」說明。'); return; }
-  if(!initTokenClient()){ if(interactive) alert('Google 登入元件尚未載入，請稍後再試。'); return; }
-  tokenClient.requestAccessToken({prompt: interactive ? 'consent' : ''});
+  if(!GOOGLE_CLIENT_ID){
+    if(interactive) alert('尚未填入 GOOGLE_CLIENT_ID，請見程式碼最上方設定說明。');
+    return;
+  }
+
+  if(!initTokenClient()){
+    if(interactive) alert('Google 登入元件尚未載入，請稍後再試。');
+    return;
+  }
+
+  tokenClient.requestAccessToken({prompt:interactive ? 'consent' : ''});
 }
-async function gApi(path, opts){
-  const r = await fetch('https://www.googleapis.com/calendar/v3/' + path, Object.assign({headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'}}, opts||{}));
+
+async function gApi(path,opts){
+  const r = await fetch(
+    'https://www.googleapis.com/calendar/v3/'+path,
+    Object.assign({
+      headers:{
+        Authorization:'Bearer '+gToken,
+        'Content-Type':'application/json'
+      }
+    },opts||{})
+  );
+
   if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
+
 async function fetchGoogleEvents(){
   if(!gToken) return;
+
   try{
     const min = todayStart.toISOString();
     const max = new Date(todayStart.getTime()+90*86400000).toISOString();
-    const q = '/events?singleEvents=true&orderBy=startTime&maxResults=30&timeMin='+encodeURIComponent(min)+'&timeMax='+encodeURIComponent(max);
-    const [mine, hol] = await Promise.all([
+
+    const q =
+      '/events?singleEvents=true&orderBy=startTime&maxResults=30&timeMin='+
+      encodeURIComponent(min)+'&timeMax='+encodeURIComponent(max);
+
+    const [mine,hol] = await Promise.all([
       gApi('calendars/primary'+q),
-      gApi('calendars/'+encodeURIComponent(HOLIDAY_CAL)+q).catch(()=>({items:[]}))
+      gApi('calendars/'+encodeURIComponent(HOLIDAY_CAL)+q)
+        .catch(()=>({items:[]}))
     ]);
-    gEvents = [...(mine.items||[]), ...(hol.items||[])].map(e=>{
+
+    gEvents = [...(mine.items||[]),...(hol.items||[])].map(e=>{
       const s = e.start.date || e.start.dateTime.slice(0,10);
       const t = e.start.dateTime ? e.start.dateTime.slice(11,16)+' ' : '';
-      return {rawDate:s, title:t+(e.summary||'(無標題)')};
+      return {rawDate:s,title:t+(e.summary||'(無標題)')};
     });
-    store.set('gEventsCache', JSON.stringify(gEvents));
+
+    store.set('gEventsCache',JSON.stringify(gEvents));
     setStatus('✅ 已同步 Google 日曆');
     renderNotes();
-  }catch(e){ setStatus('讀取 Google 日曆失敗（'+e.message+'）'); }
+
+  }catch(e){
+    setStatus('讀取 Google 日曆失敗（'+e.message+'）');
+  }
 }
+
 async function insertGoogleEvent(ev){
   const [y,m,d] = ev.rawDate.split('-').map(Number);
   const end = new Date(y,m-1,d+1);
+
   const body = {
-    summary: ev.title, description: ev.desc || '',
-    start:{date:ev.rawDate}, end:{date:`${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`}
+    summary:ev.title,
+    description:ev.desc||'',
+    start:{date:ev.rawDate},
+    end:{date:`${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`}
   };
+
   if(ev.repeatYear) body.recurrence = ['RRULE:FREQ=YEARLY'];
-  return gApi('calendars/primary/events',{method:'POST',body:JSON.stringify(body)});
+
+  return gApi('calendars/primary/events',{
+    method:'POST',
+    body:JSON.stringify(body)
+  });
 }
+
 function openGoogleTemplate(ev){
   const [y,m,d] = ev.rawDate.split('-').map(Number);
   const e = new Date(y,m-1,d+1);
-  const a = `${y}${pad(m)}${pad(d)}`, b = `${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}`;
-  let url = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(ev.title)
-    +'&dates='+a+'/'+b+'&details='+encodeURIComponent(ev.desc||'');
-  if(ev.repeatYear) url += '&recur='+encodeURIComponent('RRULE:FREQ=YEARLY');
+  const a = `${y}${pad(m)}${pad(d)}`;
+  const b = `${e.getFullYear()}${pad(e.getMonth()+1)}${pad(e.getDate())}`;
+
+  let url =
+    'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+
+    encodeURIComponent(ev.title)+'&dates='+a+'/'+b+
+    '&details='+encodeURIComponent(ev.desc||'');
+
+  if(ev.repeatYear){
+    url += '&recur='+encodeURIComponent('RRULE:FREQ=YEARLY');
+  }
+
   window.open(url,'_blank');
 }
 
@@ -246,108 +617,262 @@ function openGoogleTemplate(ev){
 function nextDate(ev){
   const [y,m,d] = ev.rawDate.split('-').map(Number);
   let dt = new Date(y,m-1,d);
-  if(ev.repeatYear) while(dt < todayStart) dt = new Date(dt.getFullYear()+1, dt.getMonth(), dt.getDate());
+
+  if(ev.repeatYear){
+    while(dt < todayStart){
+      let nextYear = dt.getFullYear()+1;
+      let nextMonth = dt.getMonth();
+
+      // 避免閏年 2/29 在非閏年變成 3/1
+      const lastDay = new Date(nextYear,nextMonth+1,0).getDate();
+      dt = new Date(nextYear,nextMonth,Math.min(d,lastDay));
+    }
+  }
+
   return dt;
 }
+
 function renderNotes(){
   const box = document.getElementById('calendarNotesContainer');
   if(!box) return;
+
   const limit = new Date(todayStart.getTime()+90*86400000);
   const all = [];
+
   const gDates = new Set(gEvents.map(e=>e.rawDate));
+
   localEvents.forEach(e=>{
-    const dt=nextDate(e);
-    const key=`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
-    if(gDates.has(key)) return;   // 同一天 Google 已有記事 → 以 Google 為準，不重複顯示
-    all.push({dt, title:e.title, tag:e.repeatYear?' 🔄':''});
+    const dt = nextDate(e);
+    const key = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+
+    // 同一天仍保留不同的本機記事，不因另一筆 Google 記事而全部隱藏
+    const matchingGoogle = gEvents.some(g=>{
+      const [gy,gm,gd] = g.rawDate.split('-').map(Number);
+      return gy===dt.getFullYear() && gm===dt.getMonth()+1 && gd===dt.getDate()
+        && g.title===e.title;
+    });
+
+    if(matchingGoogle) return;
+
+    all.push({dt,title:e.title,tag:e.repeatYear?' 🔄':''});
   });
-  gEvents.forEach(e=>{ const [y,m,d]=e.rawDate.split('-').map(Number); all.push({dt:new Date(y,m-1,d), title:e.title, tag:' 📆'}); });
+
+  gEvents.forEach(e=>{
+    const [y,m,d] = e.rawDate.split('-').map(Number);
+    all.push({dt:new Date(y,m-1,d),title:e.title,tag:' 📆'});
+  });
+
   const seen = new Set();
-  const list = all.filter(x=>x.dt>=todayStart && x.dt<=limit)
+
+  const list = all
+    .filter(x=>x.dt>=todayStart && x.dt<=limit)
     .sort((a,b)=>a.dt-b.dt)
-    .filter(x=>{ const k=x.dt.getTime()+x.title; if(seen.has(k)) return false; seen.add(k); return true; })
+    .filter(x=>{
+      const k=x.dt.getTime()+x.title;
+      if(seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
     .slice(0,10);
-  box.innerHTML = list.length ? list.map(x=>`
-    <div class="note-item">
-      <span class="note-date">${pad(x.dt.getMonth()+1)}/${pad(x.dt.getDate())} (${WK[x.dt.getDay()]})</span>
-      <span class="note-text">${esc(x.title)}${x.tag}</span>
-    </div>`).join('') : '<div class="empty">近 90 天沒有記事</div>';
+
+  box.innerHTML = list.length
+    ? list.map(x=>`
+      <div class="note-item">
+        <span class="note-date">${pad(x.dt.getMonth()+1)}/${pad(x.dt.getDate())} (${WK[x.dt.getDay()]})</span>
+        <span class="note-text">${esc(x.title)}${x.tag}</span>
+      </div>`).join('')
+    : '<div class="empty">近 90 天沒有記事</div>';
 }
 
 /* ===== 英文單字 ===== */
 const wordPools = [
-  [{word:"Ubiquitous",ph:"/juːˈbɪk.wə.t̬əs/",def:"無所不在的"},{word:"Ephemeral",ph:"/əˈfem.ər.əl/",def:"短暫的"},{word:"Pragmatic",ph:"/præɡˈmæt̬.ɪk/",def:"務實的"},{word:"Meticulous",ph:"/məˈtɪk.jə.ləs/",def:"嚴謹的"},{word:"Aesthetic",ph:"/esˈθet̬.ɪk/",def:"美學的"},
-   {word:"Ambivalent",ph:"/æmˈbɪv.ə.lənt/",def:"矛盾的"},{word:"Conundrum",ph:"/kəˈnʌn.drəm/",def:"難題"},{word:"Scrutinize",ph:"/ˈskruː.t̬ən.aɪz/",def:"仔細審查"},{word:"Tenacious",ph:"/təˈneɪ.ʃəs/",def:"堅韌的"},{word:"Candid",ph:"/ˈkæn.dɪd/",def:"坦率的"}],
-  [{word:"Equanimity",ph:"/ˌek.wəˈnɪm.ə.t̬i/",def:"沉著"},{word:"Resilience",ph:"/rɪˈzɪl.jəns/",def:"復原力"},{word:"Serendipity",ph:"/ˌser.ənˈdɪp.ə.t̬i/",def:"機緣巧合"},{word:"Eloquent",ph:"/ˈel.ə.kwənt/",def:"雄辯的"},{word:"Ambiguity",ph:"/ˌæm.bəˈɡjuː.ə.t̬i/",def:"模稜兩可"},
-   {word:"Inevitable",ph:"/ɪˈnev.ɪ.t̬ə.bəl/",def:"無可避免的"},{word:"Paradigm",ph:"/ˈper.ə.daɪm/",def:"典範"},{word:"Substantial",ph:"/səbˈstæn.ʃəl/",def:"大量的"},{word:"Coherent",ph:"/koʊˈhɪr.ənt/",def:"連貫的"},{word:"Mitigate",ph:"/ˈmɪt̬.ə.ɡeɪt/",def:"減輕"}]
+  [
+    {word:"Ubiquitous",ph:"/juːˈbɪk.wə.t̬əs/",def:"無所不在的"},
+    {word:"Ephemeral",ph:"/əˈfem.ər.əl/",def:"短暫的"},
+    {word:"Pragmatic",ph:"/præɡˈmæt̬.ɪk/",def:"務實的"},
+    {word:"Meticulous",ph:"/məˈtɪk.jə.ləs/",def:"嚴謹的"},
+    {word:"Aesthetic",ph:"/esˈθet̬.ɪk/",def:"美學的"},
+    {word:"Ambivalent",ph:"/æmˈbɪv.ə.lənt/",def:"矛盾的"},
+    {word:"Conundrum",ph:"/kəˈnʌn.drəm/",def:"難題"},
+    {word:"Scrutinize",ph:"/ˈskruː.t̬ən.aɪz/",def:"仔細審查"},
+    {word:"Tenacious",ph:"/təˈneɪ.ʃəs/",def:"堅韌的"},
+    {word:"Candid",ph:"/ˈkæn.dɪd/",def:"坦率的"}
+  ],
+  [
+    {word:"Equanimity",ph:"/ˌek.wəˈnɪm.ə.t̬i/",def:"沉著"},
+    {word:"Resilience",ph:"/rɪˈzɪl.jəns/",def:"復原力"},
+    {word:"Serendipity",ph:"/ˌser.ənˈdɪp.ə.t̬i/",def:"機緣巧合"},
+    {word:"Eloquent",ph:"/ˈel.ə.kwənt/",def:"雄辯的"},
+    {word:"Ambiguity",ph:"/ˌæm.bəˈɡjuː.ə.t̬i/",def:"模稜兩可"},
+    {word:"Inevitable",ph:"/ɪˈnev.ɪ.t̬ə.bəl/",def:"無可避免的"},
+    {word:"Paradigm",ph:"/ˈper.ə.daɪm/",def:"典範"},
+    {word:"Substantial",ph:"/səbˈstæn.ʃəl/",def:"大量的"},
+    {word:"Coherent",ph:"/koʊˈhɪr.ənt/",def:"連貫的"},
+    {word:"Mitigate",ph:"/ˈmɪt̬.ə.ɡeɪt/",def:"減輕"}
+  ]
 ];
+
 function renderWords(){
   const box = document.getElementById('wordsContainer');
   if(!box) return;
-  const doy = Math.floor((todayStart - new Date(today.getFullYear(),0,0)) / 86400000);
+
+  const doy = Math.floor(
+    (todayStart-new Date(today.getFullYear(),0,0))/86400000
+  );
+
   const ws = wordPools[doy % wordPools.length];
+
   box.innerHTML = ws.map(w=>`
     <div class="word-item">
-      <div><span class="word-title">${w.word}</span><span class="word-sub"> · ${w.def}</span><span class="word-ph">${w.ph}</span></div>
+      <div>
+        <span class="word-title">${w.word}</span>
+        <span class="word-sub"> · ${w.def}</span>
+        <span class="word-ph">${w.ph}</span>
+      </div>
       <button class="speaker-btn" onclick="speakText('${w.word}')">🔊</button>
     </div>`).join('');
 }
+
 function speakText(t){
   if('speechSynthesis' in window){
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(t); u.lang='en-US'; speechSynthesis.speak(u);
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang='en-US';
+    speechSynthesis.speak(u);
   }
 }
 
 /* ===== 彈窗控制 ===== */
-function openCalendarForm(){ document.getElementById('calendarFormModal').classList.add('active'); }
-function closeCalendarForm(){ document.getElementById('calendarFormModal').classList.remove('active'); }
+function openCalendarForm(){
+  document.getElementById('calendarFormModal').classList.add('active');
+}
+
+function closeCalendarForm(){
+  document.getElementById('calendarFormModal').classList.remove('active');
+}
 
 async function saveNewEvent(){
   const date = document.getElementById('eventDate').value;
   const title = document.getElementById('eventTitle').value.trim();
   const desc = document.getElementById('eventDesc').value.trim();
   const repeatYear = document.getElementById('eventRepeatYear').checked;
-  if(!date || !title){ alert('請完整填寫日期與記事標題！'); return; }
 
-  const ev = {rawDate:date, title, desc, repeatYear};
-  localEvents.push({rawDate:date, title: desc ? `${title} - ${desc}` : title, repeatYear});
-  store.set('userCalendarEvents', JSON.stringify(localEvents));
+  if(!date || !title){
+    alert('請完整填寫日期與記事標題！');
+    return;
+  }
+
+  const ev = {rawDate:date,title,desc,repeatYear};
+
+  localEvents.push({
+    rawDate:date,
+    title:desc ? `${title} - ${desc}` : title,
+    repeatYear
+  });
+
+  store.set('userCalendarEvents',JSON.stringify(localEvents));
 
   let msg = '';
+
   if(gToken){
-    try{ await insertGoogleEvent(ev); localEvents.pop(); store.set('userCalendarEvents', JSON.stringify(localEvents)); msg = '✅ 已寫入 Google 日曆'; await fetchGoogleEvents(); }
-    catch(e){ msg = '⚠️ API 寫入失敗（'+e.message+'），改開啟 Google 日曆預填頁'; openGoogleTemplate(ev); }
-  } else {
+    try{
+      await insertGoogleEvent(ev);
+      localEvents.pop();
+      store.set('userCalendarEvents',JSON.stringify(localEvents));
+      msg = '✅ 已寫入 Google 日曆';
+      await fetchGoogleEvents();
+    }catch(e){
+      msg = '⚠️ API 寫入失敗（'+e.message+'），改開啟 Google 日曆預填頁';
+      openGoogleTemplate(ev);
+    }
+  }else{
     openGoogleTemplate(ev);
     msg = '已開啟 Google 日曆預填頁，請在該頁按「儲存」完成寫入。';
   }
-  renderNotes(); closeCalendarForm();
-  ['eventDate','eventTitle','eventDesc'].forEach(i=>document.getElementById(i).value='');
-  document.getElementById('eventRepeatYear').checked = false;
+
+  renderNotes();
+  closeCalendarForm();
+
+  ['eventDate','eventTitle','eventDesc'].forEach(i=>{
+    document.getElementById(i).value='';
+  });
+
+  document.getElementById('eventRepeatYear').checked=false;
   alert(msg);
 }
 
 function openModal(){
-  renderNotes(); renderWords();           // 每次開啟都重新渲染，確保有內容
-  document.getElementById('morningModal').classList.add('active'); document.body.classList.add('lock');
+  updateDateDisplay();
+  renderNotes();
+  renderWords();
+
+  document.getElementById('morningModal').classList.add('active');
+  document.body.classList.add('lock');
+
+  // 開啟晨間簡報時立即更新股市
+  refreshMarketData(false);
+
   if(gToken) fetchGoogleEvents();
 }
+
 function acknowledgeAndClose(){
-  store.set('lastAcknowledgedDate', today.toDateString());
-  document.getElementById('morningModal').classList.remove('active'); document.body.classList.remove('lock');
+  store.set('lastAcknowledgedDate',today.toDateString());
+  document.getElementById('morningModal').classList.remove('active');
+  document.body.classList.remove('lock');
 }
-function resetAckStatus(){ store.del('lastAcknowledgedDate'); alert('狀態已重置！'); }
+
+function resetAckStatus(){
+  store.del('lastAcknowledgedDate');
+  alert('狀態已重置！');
+}
 
 function checkAutoTrigger(){
-  if(today.getHours() >= 9 && store.get('lastAcknowledgedDate') !== today.toDateString()) openModal();
+  updateDateDisplay();
+
+  if(today.getHours()>=9 &&
+     store.get('lastAcknowledgedDate')!==today.toDateString()){
+    openModal();
+  }
 }
 
 window.onload = function(){
-  renderNotes(); renderWords(); checkAutoTrigger();
-  if(!GOOGLE_CLIENT_ID) setStatus('尚未設定 Google 用戶端 ID，顯示本機記事');
-  else if(store.get('gConnected')) setTimeout(()=>connectGoogle(false), 800);   // 靜默重新授權
-  else setStatus('尚未連結 Google 日曆');
+  updateDateDisplay();
+  renderNotes();
+  renderWords();
+
+  // 先顯示之前成功保存的行情，避免畫面空白
+  renderMarketCache();
+
+  // 網頁開啟後立即查詢最新行情
+  refreshMarketData(false);
+
+  checkAutoTrigger();
+
+  // 每 15 分鐘查詢一次行情
+  setInterval(()=>{
+    refreshMarketData(false);
+  },MARKET_REFRESH_MS);
+
+  // 跨日後更新日期，並重新檢查晨間彈窗
+  setInterval(()=>{
+    const previousDate = today.toDateString();
+
+    updateDateDisplay();
+
+    if(today.toDateString()!==previousDate){
+      renderNotes();
+      renderWords();
+      checkAutoTrigger();
+    }
+  },60000);
+
+  if(!GOOGLE_CLIENT_ID){
+    setStatus('尚未設定 Google 用戶端 ID，顯示本機記事');
+  }else if(store.get('gConnected')){
+    setTimeout(()=>connectGoogle(false),800);
+  }else{
+    setStatus('尚未連結 Google 日曆');
+  }
 };
 </script>
 </body>
