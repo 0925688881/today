@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -28,6 +27,7 @@ body{background:#f2f2f7;margin:0;padding:32px;color:#1c1c1e}
 .main-card{background:#fff;padding:48px 40px;border-radius:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);text-align:center;max-width:680px;margin:60px auto}
 .btn{background:#007aff;color:#fff;border:none;padding:24px 36px;font-size:28px;font-weight:700;border-radius:20px;width:100%;cursor:pointer;margin-top:20px}
 .btn:active{transform:scale(.98);opacity:.85}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .btn-secondary{background:#34c759}
 .btn-gray{background:#8e8e93}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:center;z-index:999;opacity:0;pointer-events:none;transition:opacity .3s}
@@ -613,7 +613,7 @@ function openGoogleTemplate(ev){
   window.open(url,'_blank');
 }
 
-/* ===== 渲染記事（只顯示未來 90 天，合併本機 + Google） ===== */
+/* ===== 渲染記事（只顯示未來 90 天，合併本機 + Google，模糊去重） ===== */
 function nextDate(ev){
   const [y,m,d] = ev.rawDate.split('-').map(Number);
   let dt = new Date(y,m-1,d);
@@ -632,51 +632,47 @@ function nextDate(ev){
   return dt;
 }
 
+// 標題正規化：去掉時間前綴、括號備註、空白與標點，再轉小寫
+const normTitle = s => String(s).toLowerCase()
+  .replace(/^\d{2}:\d{2}\s*/,'')
+  .replace(/[（(].*?[）)]/g,'')
+  .replace(/[\s\-－—:：,，、。·]/g,'');
+
+// 同一天且標題相同或互相包含，視為同一筆
+function isSameEvent(a,b){
+  if(a.key!==b.key) return false;
+  const x=a.norm, y=b.norm;
+  if(x.length<2||y.length<2) return x===y;
+  return x===y || x.includes(y) || y.includes(x);
+}
+
 function renderNotes(){
   const box = document.getElementById('calendarNotesContainer');
   if(!box) return;
 
   const limit = new Date(todayStart.getTime()+90*86400000);
+  const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const all = [];
-
-  const gDates = new Set(gEvents.map(e=>e.rawDate));
-
-  localEvents.forEach(e=>{
-    const dt = nextDate(e);
-    const key = `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
-
-    // 同一天仍保留不同的本機記事，不因另一筆 Google 記事而全部隱藏
-    const matchingGoogle = gEvents.some(g=>{
-      const [gy,gm,gd] = g.rawDate.split('-').map(Number);
-      return gy===dt.getFullYear() && gm===dt.getMonth()+1 && gd===dt.getDate()
-        && g.title===e.title;
-    });
-
-    if(matchingGoogle) return;
-
-    all.push({dt,title:e.title,tag:e.repeatYear?' 🔄':''});
-  });
 
   gEvents.forEach(e=>{
     const [y,m,d] = e.rawDate.split('-').map(Number);
-    all.push({dt:new Date(y,m-1,d),title:e.title,tag:' 📆'});
+    const dt = new Date(y,m-1,d);
+    all.push({dt,key:dkey(dt),title:e.title,norm:normTitle(e.title),tag:' 📆',src:0});
   });
 
-  const seen = new Set();
+  localEvents.forEach(e=>{
+    const dt = nextDate(e);
+    all.push({dt,key:dkey(dt),title:e.title,norm:normTitle(e.title),tag:e.repeatYear?' 🔄':'',src:1});
+  });
 
-  const list = all
+  const list = [];
+  all
     .filter(x=>x.dt>=todayStart && x.dt<=limit)
-    .sort((a,b)=>a.dt-b.dt)
-    .filter(x=>{
-      const k=x.dt.getTime()+x.title;
-      if(seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    })
-    .slice(0,10);
+    .sort((a,b)=>(a.dt-b.dt)||(a.src-b.src))   // 同日 Google 優先保留
+    .forEach(x=>{ if(!list.some(y=>isSameEvent(x,y))) list.push(x); });
 
   box.innerHTML = list.length
-    ? list.map(x=>`
+    ? list.slice(0,10).map(x=>`
       <div class="note-item">
         <span class="note-date">${pad(x.dt.getMonth()+1)}/${pad(x.dt.getDate())} (${WK[x.dt.getDay()]})</span>
         <span class="note-text">${esc(x.title)}${x.tag}</span>
@@ -751,7 +747,11 @@ function closeCalendarForm(){
   document.getElementById('calendarFormModal').classList.remove('active');
 }
 
+// 防連點：儲存中不接受再次觸發；API 成功就不再寫本機，避免兩邊各一筆
+let saving = false;
 async function saveNewEvent(){
+  if(saving) return;
+
   const date = document.getElementById('eventDate').value;
   const title = document.getElementById('eventTitle').value.trim();
   const desc = document.getElementById('eventDesc').value.trim();
@@ -762,43 +762,52 @@ async function saveNewEvent(){
     return;
   }
 
+  saving = true;
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+
   const ev = {rawDate:date,title,desc,repeatYear};
-
-  localEvents.push({
-    rawDate:date,
-    title:desc ? `${title} - ${desc}` : title,
-    repeatYear
-  });
-
-  store.set('userCalendarEvents',JSON.stringify(localEvents));
+  const saveLocal = ()=>{
+    localEvents.push({
+      rawDate:date,
+      title:desc ? `${title} - ${desc}` : title,
+      repeatYear
+    });
+    store.set('userCalendarEvents',JSON.stringify(localEvents));
+  };
 
   let msg = '';
 
-  if(gToken){
-    try{
-      await insertGoogleEvent(ev);
-      localEvents.pop();
-      store.set('userCalendarEvents',JSON.stringify(localEvents));
-      msg = '✅ 已寫入 Google 日曆';
-      await fetchGoogleEvents();
-    }catch(e){
-      msg = '⚠️ API 寫入失敗（'+e.message+'），改開啟 Google 日曆預填頁';
+  try{
+    if(gToken){
+      try{
+        await insertGoogleEvent(ev);
+        msg = '✅ 已寫入 Google 日曆';
+        await fetchGoogleEvents();
+      }catch(e){
+        saveLocal();
+        msg = '⚠️ API 寫入失敗（'+e.message+'），已存本機並開啟預填頁';
+        openGoogleTemplate(ev);
+      }
+    }else{
+      saveLocal();
       openGoogleTemplate(ev);
+      msg = '已開啟 Google 日曆預填頁，請在該頁按「儲存」完成寫入。';
     }
-  }else{
-    openGoogleTemplate(ev);
-    msg = '已開啟 Google 日曆預填頁，請在該頁按「儲存」完成寫入。';
+
+    renderNotes();
+    closeCalendarForm();
+
+    ['eventDate','eventTitle','eventDesc'].forEach(i=>{
+      document.getElementById(i).value='';
+    });
+
+    document.getElementById('eventRepeatYear').checked=false;
+    alert(msg);
+  }finally{
+    saving = false;
+    btn.disabled = false;
   }
-
-  renderNotes();
-  closeCalendarForm();
-
-  ['eventDate','eventTitle','eventDesc'].forEach(i=>{
-    document.getElementById(i).value='';
-  });
-
-  document.getElementById('eventRepeatYear').checked=false;
-  alert(msg);
 }
 
 function openModal(){
